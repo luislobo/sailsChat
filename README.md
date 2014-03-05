@@ -1,10 +1,10 @@
-# sailsChat
+# anguarSailsChat
 
-### A Sails application
+### A Sails application + AngularJS
 
 ## What it is
 
-sailsChat is a multi-user chat app that demonstrates some new features in Sails v0.10:
+sailsChat is a multi-user chat app that demonstrates some new features in Sails v0.10 and integration via AngularJS:
 
 * Low-level socket methods using `sails.sockets`
 * New / reworked PubSub methods
