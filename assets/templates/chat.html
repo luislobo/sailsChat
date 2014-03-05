@@ -1,0 +1,20 @@
+<div class="container-fluid"></div>
+<div class="row">
+	<div class="col-sm-3">
+		<div class="list-group">
+			 <div class="panel-heading">Actions</div>
+			<a href="#" class="list-group-item">Create Room</a>
+			<a href="#" class="list-group-item">All Users</a>
+		</div>
+
+		<div class="list-group">
+			<a ng-repeat="room in rooms" href="#" class="list-group-item">{{room.name}}</a>
+		</div>
+	</div>
+	<div class="col-sm-6"></div>
+	<div class="col-sm-3">
+	<div class="list-group">
+			<a ng-repeat="user in users" href="#" class="list-group-item">{{user.name}}</a>
+		</div>
+	</div>
+</div>
