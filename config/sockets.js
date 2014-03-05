@@ -56,12 +56,14 @@ module.exports.sockets = {
 
   // This custom onDisconnect function will be run each time a socket disconnects
   onDisconnect: function(session, socket) {
-
+    if(session.users){
       // Look up the user ID using the connected socket
-      var userId = session.users[sails.sockets.id(socket)].id;
+      var theUser = session.users[sails.sockets.id(socket)];
 
-      // Get the user instance
-      User.findOne(userId).populate('rooms').exec(function(err, user) {
+      //can be a bit crashy if sails reboots / deletes sessions, this should prevent total fail.
+      if(theUser){
+        // Get the user instance
+      User.findOne(theUser.id).populate('rooms').exec(function(err, user) {
 
         // Destroy the user instance
         User.destroy({id:user.id}).exec(function(){});
@@ -69,6 +71,10 @@ module.exports.sockets = {
         // Publish the destroy event to every socket subscribed to this user instance
         User.publishDestroy(user.id, null, {previous: user});
       });
+
+      }
+    }
+      
 
   },
 

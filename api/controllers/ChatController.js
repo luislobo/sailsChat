@@ -29,7 +29,7 @@ module.exports = {
 			// subscribed to it, so they'll all get the message.  The user who created the room gets
 			// their socket subscribed to it in RoomController.create; everyone who joins later gets
 			// subscribed automatically in the "add" blueprint for the Room model.
-			Room.message(req.param('room'), {room:{id:req.param('room')}, from: user, msg: req.param('msg')}, req.socket);
+			Room.message(req.param('room'), {room:{id:req.param('room')}, from: user, msg: req.param('msg'), timestamp : new Date()});
 
 		});
 

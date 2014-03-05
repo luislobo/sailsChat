@@ -37,10 +37,10 @@ angular.module('sailsChat.services',['ui.router'])
       var idx = userManager.users.indexOf(msg.data)
       userManager.users.splice(idx)
     },
-    'addedTo' : function(data){
+    'addedTo' : function(ev,msg){
       console.log('added')
     },
-    'removed' : function(data){
+    'removed' : function(ev,msg){
       console.log('removed')
     }
   }
@@ -55,6 +55,15 @@ angular.module('sailsChat.services',['ui.router'])
 
 
   return {
+    getUserById : function(id){
+       var _user = $q.defer();
+
+       var user = $filter('findById')(userManager.users,id)
+
+       if(user) _user.resolve(user)
+
+      return _user.promise;
+    },
     getUsers : function(){
       var _users = $q.defer()
       chatSocket.get('/user').success(function(users){
@@ -70,12 +79,13 @@ angular.module('sailsChat.services',['ui.router'])
 
 }])
 
-.factory('Rooms',['$q','$filter','$rootScope','chatSocket','ChatUser',function($q,$filter,$rootScope,chatSocket,ChatUser){
+.factory('Rooms',['$q','$filter','$rootScope','chatSocket','ChatUser','Users',function($q,$filter,$rootScope,chatSocket,ChatUser,Users){
 
   var chatRoomManager = { rooms : [] }
 
   var roomEventHandlers = {
     'created' : function(ev,msg){
+      console.log('new room created',msg.data)
       chatRoomManager.rooms.push(msg.data)
     },
     'updated' : function(ev,msg){
@@ -89,20 +99,37 @@ angular.module('sailsChat.services',['ui.router'])
     'destroyed' : function(ev,msg){
       var room = $filter('findById')(chatRoomManager.rooms,msg.id)
       if(room){
-        chatRoomManager.rooms.splice(chatRoomManager.rooms.indexOf(room))
+        chatRoomManager.rooms.splice(chatRoomManager.rooms.indexOf(room),1)
       }
     },
-    'addedTo' : function(data){
-      console.log('added')
+    'addedTo' : function(ev,msg){
+      console.log('new user joined room',msg)
+      var room = $filter('findById')(chatRoomManager.rooms,msg.id)
+      
+      if(room){
+        var user = $filter('findById')(Users.users,msg.addedId)
+        var userExists = $filter('findById')(room.users || [],user.id)
+
+        if(!userExists){
+          room.users.push(user)
+        }
+      }
     },
-    'removed' : function(data){
+    'removed' : function(ev,msg){
       console.log('removed')
+    },
+    'messaged' : function(ev,msg){
+      var room = $filter('findById')(chatRoomManager.rooms,msg.id)
+
+      if(!room.messages) room.messages = [];
+
+      room.messages.push(msg.data)
+
     }
   }
 
 
   $rootScope.$on('sails:room',function(ev,data){
-    console.log(ev,data)
     if(roomEventHandlers[data.verb]) roomEventHandlers[data.verb](ev,data);
   })
 
@@ -121,28 +148,70 @@ angular.module('sailsChat.services',['ui.router'])
 
       return _rooms.promise;
     },
+    getRoomById : function(id){
+      var _room = $q.defer();
+
+
+
+       var room = $filter('findById')(chatRoomManager.rooms,id)
+       console.log(room)
+       if(room) _room.resolve(room)
+        console.log('found room', room)
+        return _room.promise;
+    },
     createRoom : function(roomName){
+      var _newRoom = $q.defer()
       if(roomName){
         chatSocket.post('/room',{name : roomName}).success(function(newRoom){
-          chatRoomManager.rooms.push(newRoom)
+          chatSocket.get('/room/' + newRoom.id).success(function(room){
+            chatRoomManager.rooms.push(room)
+             _newRoom.resolve(room)
+         
 
-          return newRoom;
-        }).error(function(err){ console.log(err) })
-      }
-    },
-    joinRoom : function(room){
-      if(room){
-        console.log(ChatUser.user.id)
-        chatSocket.post('/room/' + room.id + '/users',{id : ChatUser.user.id}).success(function(joined){
-          console.log(joined)
+          })
+
+
+            
+          
+
+        
         }).error(function(err){
-          console.log(err)
+          _newRoom.reject(err)
         })
       }
+      return _newRoom.promise;
+    },
+    joinRoom : function(room){
+      var _joinedRoom = $q.defer()
+      chatSocket.post('/room/' + room.id + '/users',{id : ChatUser.user.id}).success(function(joined){
+      
+
+        _joinedRoom.resolve(room)
+      })
+      return _joinedRoom.promise;
     },
     chatrooms : chatRoomManager.rooms
   }
 
+
+}]).factory('Messages',['$q','$filter','$rootScope','chatSocket','ChatUser','Users','Rooms',function($q,$filter,$rootScope,chatSocket,ChatUser,Users,Rooms){
+
+
+  return {
+    sendMessageToRoom : function(room,message){
+
+      if(room && message){
+        chatSocket.post('/chat/public',{room : room.id, msg : message})
+      }
+
+
+    },
+    sendMessageToUser : function(user,message){
+      if(user && message){
+        chatSocket.post('/chat/private',{user : user.id, msg : message})
+      }
+    }
+  }
 
 }])
 
@@ -162,9 +231,9 @@ angular.module('sailsChat.services',['ui.router'])
   return {
     connected : _chatUser.connected,
     update : function(user){
-      console.log(user)
       return chatSocket.put('/user/' + user.id,user).success(function(user){
         _chatUser.name = user.name
+        _chatUser.connected = true;
         return user;
       }).error(function(err){
         return err

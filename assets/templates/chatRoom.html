@@ -1,0 +1,23 @@
+<div class="col-md-8">
+	<h4>Room : {{room.name}}</h4>
+	<div class="row">
+		<form class="input-group">
+			<input type="text" ng-model="messageBody" class="form-control"/>
+			<span class="input-group-btn">
+				<button class="btn btn-default" type="button" ng-click="sendMessage(messageBody)">Send</button>
+			</span>
+		</form>
+	</div>
+	<div class="row padding-top">
+		<div class="panel panel-default" ng-repeat="message in room.messages | orderBy:'-timestamp'">
+			<div class="panel-body">{{message.timestamp | date:'mediumTime'}}: <b>{{message.from.name}}</b>: {{message.msg}}
+			</div>
+		</div>
+	</div>
+</div>
+<div class="col-md-4">
+	<h4>Users</h4>
+	<div class="list-group">
+		<a ng-repeat="user in room.users" href="#" class="list-group-item">{{user.name}}</a>
+	</div>
+</div>

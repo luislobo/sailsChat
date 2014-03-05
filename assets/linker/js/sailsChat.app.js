@@ -7,7 +7,23 @@
 
 
 //app module
-sailsChat = angular.module('sailsChat',['angularSails','ui.router','sailsChat.controllers','sailsChat.ui','sailsChat.services']).run(['$rootScope','$state',function($rootScope,$state){
+sailsChat = angular.module('sailsChat',['angularSails','ui.router','sailsChat.controllers','sailsChat.ui','sailsChat.services'])
+
+.run(['$rootScope','$state','ChatUser',function($rootScope,$state,ChatUser){
+
+  $rootScope.$on('$stateChangeStart',function(ev,toState,toParams,fromState,fromParams){
+      if(toState.data && toState.data.user){
+        if(ChatUser.user.connected) return;
+        else{
+          console.log(toState)
+          ev.preventDefault();
+          $state.go('signin');
+        }
+        
+      }
+
+  })
+
 
   $rootScope.$on('$stateChangeError',function(err){
     console.log(err)
@@ -26,27 +42,43 @@ sailsChat = angular.module('sailsChat',['angularSails','ui.router','sailsChat.co
     controller : 'appController',
     templateUrl : '/templates/layout.html',
     abstract : true,
-    url: '/'
     
   })
 
-  $stateProvider.state('app.signin',{
+  $stateProvider.state('signin',{
     controller : 'signInController',
-    parent : 'app',
     templateUrl : '/templates/signin.html',
-    
+    url : '/signin'
   })
 
   $stateProvider.state('app.chat',{
     controller : 'chatController',
-    parent : 'app',
     templateUrl : '/templates/chat.html',
+    url : '/chatrooms',
+    data : {
+      'user' : true
+    }
+    
+  })
+  $stateProvider.state('app.chat.new',{
+    controller : 'newChatController',
+    parent : 'app.chat',
+    templateUrl : '/templates/newChat.html',
+    url : '/new'
+    
+  })
+  $stateProvider.state('app.chat.room',{
+    controller : 'chatRoomController',
+    parent : 'app.chat',
+    templateUrl : '/templates/chatRoom.html',
+    url : "/:id"
     
   })
 
+  $urlRouterProvider.otherwise('/signin')
+
 }]).run(function($rootScope, $state, ChatUser) {
 
-  $state.go('app.signin')
 
 })
 
@@ -56,15 +88,20 @@ sailsChat = angular.module('sailsChat',['angularSails','ui.router','sailsChat.co
 
 
 
-
+//utility filter for finding an object by id. 
 .filter('findById',function(){
   return function(collection,id){
+    var rec = null;
     for(var i = 0; i < collection.length; i += 1){
     var result = collection[i];
-    if(result.id === id){
-        return result;
+    console.log(result)
+    if(result.id == id){
+        rec = result;
+        continue;
     }
-}
+  }
+    console.log(rec)
+    return rec;
   }
 })
 
